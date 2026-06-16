@@ -1,552 +1,837 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>BudgetSmart</title>
-<link rel="stylesheet" href="style.css"/>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#2E7D5E"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-title" content="BudgetSmart"/>
-<link rel="apple-touch-icon" href="icons/icon-192.png"/>
-</head>
-<body>
+'use strict';
+/* ══ CONSTANTES ══ */
+const STRIPE         = 'https://buy.stripe.com/3cI28r0nRbNva7J3VyaEE00';
+const STRIPE_BASIC   = 'https://buy.stripe.com/aFa6oH0nRbNv3Jl77KaEE03';
+const STRIPE_PREMIUM = 'https://buy.stripe.com/00wbJ14E76tbfs3eAcaEE02';
+const STRIPE_BUSI    = 'https://buy.stripe.com/cNi9ATc6z9Fn7ZB4ZCaEE01';
+const PAYPAL         = 'https://www.paypal.me/Misswaxbeautycare';
+const CALENDLY       = 'https://calendly.com/missnyungedigitalservices/echange-projet-digital-ecommerce';
+const ADMIN_PWD      = 'Budgetsmart20@131690-25';
+const APP_URL        = 'https://budgetsmartpro.netlify.app';
 
-<nav class="sidebar" id="sidebar">
-  <div class="sidebar-logo">
-    <img src="icons/logo.png" class="logo-img" onerror="this.style.display='none'"/>
-    <div>
-      <div class="logo-text">Budget<em>Smart</em></div>
-      <div class="logo-sub">L'intelligence financière pour tous</div>
-    </div>
-  </div>
-  <div class="sp" id="sp">
-    <div class="sp-av" id="spAv">U</div>
-    <div>
-      <div class="sp-name" id="spName">Mon Profil</div>
-      <div class="sp-plan" id="spPlan">Plan Gratuit — 7 jours</div>
-    </div>
-  </div>
-  <ul class="nav">
-    <li><a class="ni active" data-p="dashboard">Tableau de bord</a></li>
-    <li><a class="ni" data-p="daily">Dépenses quotidiennes</a></li>
-    <li class="ns">MES OBJECTIFS</li>
-    <li><a class="ni" data-p="goals">Objectif Personnel</a></li>
-    <li><a class="ni" data-p="business">Projet Business <span class="nb">Premium</span></a></li>
-    <li><a class="ni" data-p="couple">Projet Couple <span class="nb">Premium</span></a></li>
-    <li class="ns">ÉPARGNE</li>
-    <li><a class="ni" data-p="tips">Conseils financiers</a></li>
-    <li><a class="ni" data-p="defis">Défis d'épargne</a></li>
-    <li><a class="ni" data-p="family">Mode Famille</a></li>
-    <li class="ns">COMPTE</li>
-    <li><a class="ni" data-p="pricing">Abonnements</a></li>
-    <li><a class="ni" data-p="coaching">Coaching Premium</a></li>
-    <li><a class="ni admin-nav" id="adminNav" data-p="admin" style="display:none">Espace Admin</a></li>
-  </ul>
-  <div class="sb">
-    <div class="sb-plan" id="sbPlan">Plan Gratuit — Essai 7 jours</div>
-    <a class="sb-up" data-p="pricing">Passer à Premium</a>
-  </div>
-</nav>
+const CATS = {nourriture:'🥗',transport:'🚌',loyer:'🏠',factures:'💡',shopping:'🛍',sante:'💊',enfants:'👶',business:'💼',loisirs:'🎭',epargne:'💰',dettes:'📉',autre:'📦'};
+const COLORS = ['#2E7D5E','#1E5A9C','#C8922A','#D4621A','#7B3DB5','#B53051','#4AAB9B'];
 
-<header class="mh">
-  <button id="menuBtn">☰</button>
-  <div class="mh-logo">Budget<em>Smart</em></div>
-  <div class="mh-av" id="mhAv">U</div>
-</header>
+const TIPS = [
+  {cat:'Budget',txt:'La règle 50/30/20 : 50% besoins, 30% envies, 20% épargne. Commencez dès aujourd\'hui.'},
+  {cat:'Épargne',txt:'Automatisez votre épargne dès le jour de votre salaire — avant toute dépense.'},
+  {cat:'Dépenses',txt:'Attendez 48h avant tout achat non essentiel. L\'envie disparaît souvent.'},
+  {cat:'Mindset',txt:'Chaque euro économisé aujourd\'hui est une liberté gagnée demain.'},
+  {cat:'Alimentation',txt:'Cuisinez à la maison 3 fois cette semaine. Économisez 20 à 50 €.'},
+  {cat:'Abonnements',txt:'Faites le bilan de vos abonnements inutilisés ce mois-ci.'},
+  {cat:'Investissement',txt:'50 € par mois à 5% donnent 76 000 € en 30 ans. Commencez tôt.'},
+  {cat:'Dettes',txt:'Remboursez d\'abord la dette avec le taux d\'intérêt le plus élevé.'},
+  {cat:'Urgences',txt:'Constituez un fonds d\'urgence de 3 mois de dépenses.'},
+  {cat:'Business',txt:'Séparez finances personnelles et professionnelles dès le 1er jour.'},
+  {cat:'Famille',txt:'Impliquez vos enfants dans le budget familial dès 8 ans.'},
+  {cat:'Couple',txt:'Parlez d\'argent avec votre partenaire chaque mois.'},
+  {cat:'Shopping',txt:'Faites une liste avant chaque course et respectez-la.'},
+];
 
-<div class="ov" id="ov"></div>
+const DEFIS = [
+  {name:'1 € par jour',             desc:'Économisez 1 € de plus chaque jour pendant 30 jours.',  dur:'30 jours',   obj:30,  q:1},
+  {name:'7 jours sans dépense',     desc:'Zéro restaurant, shopping, achat impulsif pendant 7j.',  dur:'7 jours',    obj:50,  q:7},
+  {name:'Défi 30 jours épargne',    desc:'Épargnez chaque jour et atteignez votre objectif.',      dur:'30 jours',   obj:465, q:15},
+  {name:'Défi rentrée scolaire',    desc:'Préparez le budget rentrée semaine par semaine.',         dur:'8 semaines', obj:160, q:20},
+  {name:'Défi business',            desc:'Mettez de côté chaque mois pour lancer votre activité.', dur:'12 mois',    obj:600, q:50},
+  {name:'Défi famille',             desc:'Objectif commun pour toute la famille.',                  dur:'3 mois',     obj:300, q:10},
+  {name:'5 € par jour',             desc:'Économisez 5 € chaque jour. En 30 jours = 150 € !',      dur:'30 jours',   obj:150, q:5},
+  {name:'10 € par jour',            desc:'Économisez 10 € par jour. En 30 jours = 300 € !',        dur:'30 jours',   obj:300, q:10},
+  {name:'20 € par jour',            desc:'Économisez 20 € par jour. En 30 jours = 600 € !',        dur:'30 jours',   obj:600, q:20},
+  {name:'20 € par semaine',         desc:'Mettez 20 € de côté chaque semaine.',                    dur:'12 semaines',obj:240, q:20},
+  {name:'50 € par semaine',         desc:'Économisez 50 € par semaine. En 12 semaines = 600 € !',  dur:'12 semaines',obj:600, q:50},
+];
 
-<main class="main">
+const MSG_SUCCES = [
+  '🏆 Vous avez atteint votre objectif ! Vous êtes incroyable !',
+  '🎉 Bravo ! Vous avez prouvé que vous pouvez le faire !',
+  '⭐ Félicitations ! Votre discipline financière est exemplaire !',
+  '💪 Objectif atteint ! Votre futur vous remercie !',
+];
+const MSG_RAPPEL = [
+  '⏰ N\'oubliez pas d\'ajouter votre épargne aujourd\'hui !',
+  '💡 Un petit montant ajouté chaque jour fait une grande différence !',
+  '🎯 Restez constant — c\'est la clé du succès !',
+  '📅 Chaque jour compte — ne manquez pas celui-ci !',
+];
+const MSG_ENC = [
+  'Continuez comme ça, vous êtes sur la bonne voie !',
+  'Chaque euro compte — vous faites un excellent travail !',
+  'La constance est la clé du succès financier. Bravo !',
+  'Vous construisez votre liberté financière jour après jour !',
+];
 
-<!-- DASHBOARD -->
-<section class="page active" id="p-dashboard">
-  <div class="ph">
-    <div><h1 class="pt">Tableau de bord</h1><p class="ps">La sérénité financière, enfin accessible.</p></div>
-    <div class="ph-date" id="phDate"></div>
-  </div>
-  <div class="kpi-grid">
-    <div class="kpi k-green"><div class="kl">Solde actuel</div><div class="kv" id="kBalance">0,00 €</div><div class="ks up">En bonne santé</div></div>
-    <div class="kpi k-blue"><div class="kl">Revenus du mois</div><div class="kv" id="kIncome">0,00 €</div><div class="ks">Ce mois-ci</div></div>
-    <div class="kpi k-orange"><div class="kl">Dépenses du mois</div><div class="kv" id="kExpense">0,00 €</div><div class="ks">Ce mois-ci</div></div>
-    <div class="kpi k-gold"><div class="kl">Économisé</div><div class="kv" id="kSaved">0,00 €</div><div class="ks up">Excellent !</div></div>
-  </div>
-  <div class="alert" id="alertBox" style="display:none"><span id="alertMsg"></span></div>
-  <div class="obj-grid">
-    <div class="obj obj-green" id="objPersonal">
-      <div class="obj-icon">🎯</div>
-      <div class="obj-name">Objectif Personnel</div>
-      <div class="obj-val" id="objPersonalVal">0,00 €</div>
-      <div class="obj-tag free">Inclus gratuit</div>
-    </div>
-    <div class="obj obj-blue" id="objBusiness">
-      <div class="obj-lock">🔒</div>
-      <div class="obj-icon">💼</div>
-      <div class="obj-name">Projet Business</div>
-      <div class="obj-sub">Lancez votre activité</div>
-      <div class="obj-tag prem">Voir les plans</div>
-    </div>
-    <div class="obj obj-gold" id="objCouple">
-      <div class="obj-lock">🔒</div>
-      <div class="obj-icon">💑</div>
-      <div class="obj-name">Projet Couple</div>
-      <div class="obj-sub">Mariage · Maison · Bébé</div>
-      <div class="obj-tag prem">Voir les plans</div>
-    </div>
-  </div>
-  <div class="coaching-bar" id="coachBar">
-    <div class="cb-left">
-      <div class="cb-title">Coaching Financier Personnalisé</div>
-      <div class="cb-sub">Séance privée avec notre experte · Dès 49,99 €</div>
-    </div>
-    <div class="cb-btn">Réserver maintenant</div>
-  </div>
-  <div class="charts-row">
-    <div class="chart-card">
-      <div class="chart-title">Répartition des dépenses</div>
-      <canvas id="donut" width="180" height="180"></canvas>
-      <div id="donutLeg"></div>
-    </div>
-    <div class="chart-card chart-wide">
-      <div class="chart-title">Évolution 6 mois</div>
-      <canvas id="bar" width="380" height="180"></canvas>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title">Dernières transactions</div>
-    <div id="recentTx"><div class="empty">Aucune transaction encore.</div></div>
-  </div>
-  <div class="card" id="activeDefiCard" style="display:none">
-    <div class="card-title">Mes défis en cours</div>
-    <div id="activeDefiList"></div>
-  </div>
-  <!-- ÉVOLUTION DÉFIS SUR DASHBOARD -->
-  <div class="card" id="defiEvoDash">
-    <div class="card-title">Progression de mes défis</div>
-    <div id="defiEvoList"><div class="empty">Commencez un défi pour voir votre progression ici.</div></div>
-    <a class="defi-see-all" id="btnSeeAllDefis">Voir tous les défis →</a>
-  </div>
+const PLANS = {
+  eu:[
+    {name:'Gratuit', price:'0',    unit:'€/mois', feats:['Tableau de bord complet','Fiche quotidienne (7j)','1 objectif personnel','Conseils basiques','3 défis épargne'], cta:'Plan actuel'},
+    {name:'Basic',   price:'2,99', unit:'€/mois', feats:['Objectifs illimités','Graphiques mensuels','Tous les défis','Catégories perso','Résumé mensuel'], cta:'Choisir Basic'},
+    {name:'Premium', price:'5,99', unit:'€/mois', feats:['Tout Basic inclus','Projet Business','Projet Couple','Export PDF','Mode famille','Alertes'], cta:'Choisir Premium', feat:true, badge:'Populaire'},
+    {name:'Business',price:'9,99', unit:'€/mois', feats:['Tout Premium inclus','Plusieurs profils','Budget familial','Rapports avancés','Export Excel','Assistance'], cta:'Choisir Business'},
+  ],
+  af:[
+    {name:'Gratuit', price:'0', unit:'€/mois', feats:['Tableau de bord','Fiche quotidienne (7j)','1 objectif','Conseils basiques'], cta:'Plan actuel'},
+    {name:'Basic',   price:'1', unit:'€/mois', feats:['Objectifs illimités','Graphiques mensuels','Tous les défis','Catégories perso'], cta:'Choisir Basic — 1€/mois'},
+    {name:'Premium', price:'2', unit:'€/mois', feats:['Tout Basic inclus','Projet Business','Projet Couple','Export PDF','Mode famille'], cta:'Choisir Premium — 2€/mois', feat:true, badge:'Populaire'},
+    {name:'Business',price:'3', unit:'€/mois', feats:['Tout Premium inclus','Plusieurs profils','Budget familial','Rapports avancés','Export Excel'], cta:'Choisir Business — 3€/mois'},
+  ],
+};
 
-  <!-- OBJECTIFS SUR DASHBOARD -->
-  <div class="card" id="goalEvoDash">
-    <div class="card-title">Mes objectifs d'épargne</div>
-    <div id="goalEvoList"><div class="empty">Créez un objectif pour suivre votre progression.</div></div>
-    <a class="defi-see-all" id="btnSeeAllGoals">Voir mes objectifs →</a>
-  </div>
+let pMode = 'eu';
+let coOffer = null;
 
-  <div class="tip-strip"><span id="dashTip">Chargement du conseil…</span></div>
-  <div class="pay-strip">
-    <span class="pay-label">Paiements sécurisés :</span>
-    <span class="pbadge visa">Visa</span>
-    <span class="pbadge mc">Mastercard</span>
-    <span class="pbadge pp">PayPal</span>
-    <span class="pbadge soon">Mobile Money bientôt</span>
-  </div>
-  <div class="upsell" id="upsellBar">
-    Fonctionnalités Premium — Projet Business, Couple, Mode Famille, Coaching…
-    <span class="upsell-cta">Voir les plans</span>
-  </div>
-</section>
+/* ══ INIT ══ */
+document.addEventListener('DOMContentLoaded', () => {
+  initNav();
+  initMobile();
+  initAllButtons();
+  loadProfile();
+  loadPhoto();
+  setDate();
+  setEntryDate();
+  renderDash();
+  renderEntries();
+  renderGoals();
+  renderTips();
+  renderDefis();
+  renderPricingAll();
+  initCoaching();
+  initAdmin();
+  initPWA();
+  initNotif();
+});
 
-<!-- DÉPENSES -->
-<section class="page" id="p-daily">
-  <div class="ph"><div><h1 class="pt">Dépenses quotidiennes</h1><p class="ps">Enregistrez vos revenus et dépenses</p></div></div>
-  <div class="card">
-    <div class="card-title">Nouvelle entrée</div>
-    <div class="fg"><label>Date</label><input type="date" id="eDate" class="inp"/></div>
-    <div class="form2">
-      <div class="fg"><label>Revenu (€)</label><input type="number" id="eIncome" class="inp" placeholder="0.00" min="0" step="0.01"/></div>
-      <div class="fg"><label>Dépense (€)</label><input type="number" id="eExpense" class="inp" placeholder="0.00" min="0" step="0.01"/></div>
-      <div class="fg"><label>Catégorie</label>
-        <select id="eCat" class="inp">
-          <option value="nourriture">Nourriture</option>
-          <option value="transport">Transport</option>
-          <option value="loyer">Loyer</option>
-          <option value="factures">Factures</option>
-          <option value="shopping">Shopping</option>
-          <option value="sante">Santé</option>
-          <option value="enfants">Enfants</option>
-          <option value="business">Business</option>
-          <option value="loisirs">Loisirs</option>
-          <option value="epargne">Épargne</option>
-          <option value="dettes">Dettes</option>
-          <option value="autre">Autre</option>
-        </select>
+/* ══ NAVIGATION ══ */
+function initNav() {
+  document.querySelectorAll('.ni').forEach(el => {
+    el.addEventListener('click', e => { e.preventDefault(); go(el.dataset.p); closeSidebar(); });
+  });
+  const sp = document.getElementById('sp');
+  if (sp) sp.addEventListener('click', () => { go('profile'); closeSidebar(); });
+  const sbUp = document.querySelector('.sb-up');
+  if (sbUp) sbUp.addEventListener('click', e => { e.preventDefault(); go('pricing'); closeSidebar(); });
+}
+
+function go(page) {
+  if (!page) return;
+  document.querySelectorAll('.ni').forEach(i => i.classList.toggle('active', i.dataset.p === page));
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'p-' + page));
+  window.scrollTo(0, 0);
+  if (page === 'admin' && ls('bs_admin') === ADMIN_PWD) renderAdmin();
+  if (page === 'dashboard') { renderDash(); initPWABanner(); }
+}
+
+function initMobile() {
+  const btn = document.getElementById('menuBtn');
+  const sb  = document.getElementById('sidebar');
+  const ov  = document.getElementById('ov');
+  if (btn) btn.addEventListener('click', () => { sb.classList.toggle('open'); ov.classList.toggle('show'); });
+  if (ov)  ov.addEventListener('click', closeSidebar);
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('ov').classList.remove('show');
+}
+
+/* ══ TOUS LES BOUTONS ══ */
+function initAllButtons() {
+  const b = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
+
+  /* Dashboard */
+  b('coCta',        () => go('coaching'));
+  b('upsellBar',    () => go('pricing'));
+  b('oPersonal',    () => go('goals'));
+  b('oBusiness',    () => go('business'));
+  b('oCouple',      () => go('couple'));
+  b('btnSeeGoals',  () => go('goals'));
+
+  /* PWA Banner */
+  b('btnPWA',       pwaInstall);
+  b('btnPWAClose',  () => { const bn = document.getElementById('pwaBanner'); if (bn) bn.style.display = 'none'; });
+
+  /* Daily */
+  b('btnAddEntry',  addEntry);
+
+  /* Goals */
+  b('btnAddGoal',   addGoal);
+  b('ugBusiness',   () => go('business'));
+  b('ugCouple',     () => go('couple'));
+
+  /* Tips */
+  b('btnNewTip',    () => txt('tipText', TIPS[Math.floor(Math.random()*TIPS.length)].txt));
+
+  /* Family */
+  b('btnFamCard',   () => window.open(STRIPE_BUSI, '_blank'));
+  b('btnFamPP',     () => window.open(PAYPAL, '_blank'));
+
+  /* Pricing toggles */
+  b('togEU', () => { pMode='eu'; document.getElementById('togEU').classList.add('active'); document.getElementById('togAF').classList.remove('active'); renderPricingMain(); });
+  b('togAF', () => { pMode='af'; document.getElementById('togAF').classList.add('active'); document.getElementById('togEU').classList.remove('active'); renderPricingMain(); });
+
+  /* Pricing payment */
+  b('selCard', () => window.open(getStripeLink(document.getElementById('selName')?.textContent), '_blank'));
+  b('selPP',   () => window.open(PAYPAL, '_blank'));
+
+  /* Business project */
+  b('pcBCard', () => window.open(getStripeLink('Business'), '_blank'));
+  b('pcBPP',   () => window.open(PAYPAL, '_blank'));
+
+  /* Couple project */
+  b('pcCCard', () => window.open(getStripeLink('Business'), '_blank'));
+  b('pcCPP',   () => window.open(PAYPAL, '_blank'));
+
+  /* Modal */
+  b('mCard',  () => { closeModal(); window.open(STRIPE, '_blank'); });
+  b('mPP',    () => { closeModal(); window.open(PAYPAL, '_blank'); });
+  b('mClose', closeModal);
+  const modal = document.getElementById('modal');
+  if (modal) modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+  /* Profile */
+  b('btnSaveProfile', saveProfile);
+  b('btnExport',      exportData);
+  b('btnClear',       clearData);
+  b('btnAdmin',       adminLogin);
+
+  /* Profile PWA install */
+  b('btnLogout',      adminLogout);
+
+  /* Photo */
+  const pi = document.getElementById('photoInput');
+  if (pi) pi.addEventListener('change', handlePhoto);
+
+  /* Share */
+  const shareUrl = APP_URL;
+  const shareMsg = encodeURIComponent('🌟 Découvrez BudgetSmart !\n\nL\'app qui vous aide à gérer votre budget et épargner intelligemment.\n\n✅ Dépenses quotidiennes\n✅ Objectifs d\'épargne\n✅ Défis d\'épargne\n✅ Coaching financier\n\n🎁 7 jours gratuits !\n\n👉 ' + APP_URL);
+  b('btnCopyLink', () => navigator.clipboard.writeText(shareUrl).then(() => toast('Lien copié !')));
+  b('btnCopyMsg',  () => { const box = document.getElementById('shareMsgBox'); if (box) navigator.clipboard.writeText(box.textContent.trim()).then(() => toast('Message copié !')); });
+  b('shareWA',  () => window.open('https://wa.me/?text=' + shareMsg, '_blank'));
+  b('shareFB',  () => window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareUrl), '_blank'));
+  b('shareIG',  () => navigator.clipboard.writeText(shareUrl).then(() => toast('Lien copié ! Collez dans votre bio Instagram.')));
+  b('shareTK',  () => navigator.clipboard.writeText(shareUrl).then(() => toast('Lien copié ! Collez dans votre bio TikTok.')));
+  b('shareEM',  () => window.open('mailto:?subject=BudgetSmart&body=' + shareMsg, '_blank'));
+  b('shareTW',  () => window.open('https://twitter.com/intent/tweet?text=' + shareMsg, '_blank'));
+
+  /* Settings */
+  b('setProfile',  () => go('profile'));
+  b('setPricing',  () => go('pricing'));
+  b('setCoaching', () => go('coaching'));
+  b('setShare',    () => go('share'));
+  b('setExport',   exportData);
+  b('setClear',    clearData);
+  b('setPWA',      pwaInstall);
+  b('setNotif',    initNotif);
+  const notifT = document.getElementById('notifToggle');
+  if (notifT) notifT.addEventListener('click', () => {
+    notifT.classList.toggle('on');
+    if (!notifT.classList.contains('on')) return;
+    initNotif();
+    toast('Notifications activées !');
+  });
+
+  /* Admin nav */
+  document.querySelectorAll('.anb').forEach(btn => btn.addEventListener('click', () => go(btn.dataset.p)));
+}
+
+/* ══ UTILS ══ */
+function ls(k, d) { try { const v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : d; } catch { return d; } }
+function sv(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+function fmt(v, c) { c = c||'€'; return v.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+c; }
+function txt(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
+function toast(msg) {
+  const t = document.getElementById('toast'); if (!t) return;
+  t.textContent = msg; t.style.transform = 'translateY(0)'; t.style.opacity = '1';
+  clearTimeout(t._t); t._t = setTimeout(() => { t.style.transform = 'translateY(80px)'; t.style.opacity = '0'; }, 3200);
+}
+function setDate() { const el = document.getElementById('phDate'); if (el) el.textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
+function setEntryDate() { const el = document.getElementById('eDate'); if (el) el.value = new Date().toISOString().slice(0,10); }
+function getStripeLink(name) {
+  if (!name) return STRIPE;
+  if (name.toLowerCase().includes('basic'))    return STRIPE_BASIC;
+  if (name.toLowerCase().includes('premium'))  return STRIPE_PREMIUM;
+  if (name.toLowerCase().includes('business')) return STRIPE_BUSI;
+  return STRIPE;
+}
+
+/* ══ DASHBOARD ══ */
+function renderDash() {
+  const entries = ls('entries', []);
+  const now = new Date(), m = now.getMonth(), y = now.getFullYear();
+  let inc=0, exp=0, sav=0; const cats={};
+  entries.forEach(e => {
+    const d = new Date(e.date);
+    if (d.getMonth()===m && d.getFullYear()===y) {
+      inc += e.inc||0; exp += e.exp||0; sav += e.sav||0;
+      cats[e.cat] = (cats[e.cat]||0) + (e.exp||0);
+    }
+  });
+  const p = ls('profile', {}), cur = p.currency||'€';
+  txt('kBal', fmt(inc-exp, cur));
+  txt('kInc', fmt(inc, cur));
+  txt('kExp', fmt(exp, cur));
+  txt('kSav', fmt(sav, cur));
+  const ab = document.getElementById('alertBox');
+  if (ab) { if (inc>0 && exp/inc>0.8) { ab.style.display='block'; txt('alertMsg','⚠ Vos dépenses représentent '+Math.round(exp/inc*100)+'% de vos revenus !'); } else ab.style.display='none'; }
+  const goals = ls('goals', []);
+  txt('oPersonalVal', fmt(goals.reduce((s,g)=>s+(g.sav||0),0), cur));
+  drawDonut(cats, cur);
+  drawBar(entries, cur);
+  renderRecentTx(entries.slice(-5).reverse(), cur);
+  renderActiveDefis();
+  renderGoalEvo(cur);
+  txt('dashTip', TIPS[Math.floor(Math.random()*TIPS.length)].txt);
+}
+
+/* ══ CHARTS ══ */
+function drawDonut(cats, cur) {
+  const cv = document.getElementById('donut'); if (!cv) return;
+  const ctx = cv.getContext('2d'), cx=90,cy=90,R=75,r=48;
+  ctx.clearRect(0,0,180,180);
+  const ents = Object.entries(cats).filter(([,v])=>v>0);
+  const tot = ents.reduce((s,[,v])=>s+v,0);
+  const leg = document.getElementById('donutLeg'); if (leg) leg.innerHTML='';
+  if (!tot) { ctx.strokeStyle='#D4D0C8';ctx.lineWidth=27;ctx.beginPath();ctx.arc(cx,cy,62,0,Math.PI*2);ctx.stroke();return; }
+  let ang=-Math.PI/2;
+  ents.forEach(([cat,val],i) => {
+    const sl=(val/tot)*Math.PI*2,col=COLORS[i%COLORS.length];
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,R,ang,ang+sl);ctx.closePath();ctx.fillStyle=col;ctx.fill();ang+=sl;
+    if (leg) { const d=document.createElement('div');d.className='dl';d.innerHTML='<div class="dd" style="background:'+col+'"></div><span style="flex:1">'+(CATS[cat]||'')+' '+cat+'</span><span style="font-weight:800">'+fmt(val,cur)+'</span>';leg.appendChild(d); }
+  });
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+  ctx.fillStyle='#0D1117';ctx.font='bold 10px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText(fmt(tot,cur).split(' ')[0],cx,cy-1);
+  ctx.fillStyle='#6B7280';ctx.font='9px DM Sans,sans-serif';ctx.fillText('total',cx,cy+11);
+}
+
+function drawBar(all, cur) {
+  const cv = document.getElementById('barC'); if (!cv) return;
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height,now=new Date();
+  ctx.clearRect(0,0,W,H);
+  const months=[];
+  for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({lbl:d.toLocaleDateString('fr-FR',{month:'short'}),m:d.getMonth(),y:d.getFullYear(),inc:0,exp:0,sav:0});}
+  all.forEach(e=>{const d=new Date(e.date),mm=months.find(x=>x.m===d.getMonth()&&x.y===d.getFullYear());if(mm){mm.inc+=e.inc||0;mm.exp+=e.exp||0;mm.sav+=e.sav||0;}});
+  const pL=40,pR=8,pT=10,pB=24,cW=W-pL-pR,cH=H-pT-pB;
+  const max=Math.max(...months.flatMap(m=>[m.inc,m.exp,m.sav]),1);
+  ctx.strokeStyle='#E8E5E0';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=pT+cH-(i/4)*cH;ctx.beginPath();ctx.moveTo(pL,y);ctx.lineTo(pL+cW,y);ctx.stroke();ctx.fillStyle='#6B7280';ctx.font='8px DM Sans';ctx.textAlign='right';ctx.fillText(Math.round(max*i/4),pL-3,y+3);}
+  const bw=cW/months.length,gw=bw*0.22,bwi=bw*0.19;
+  months.forEach((mm,i)=>{
+    const x=pL+i*bw+gw;
+    [['#2E7D5E',mm.inc],['#D4621A',mm.exp],['#C8922A',mm.sav]].forEach(([col,val],j)=>{
+      const bh=(val/max)*cH;ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(x+j*(bwi+2),pT+cH-bh,bwi,bh,[3,3,0,0]);ctx.fill();
+    });
+    ctx.fillStyle='#6B7280';ctx.font='8px DM Sans';ctx.textAlign='center';ctx.fillText(mm.lbl,pL+i*bw+bw/2,H-6);
+  });
+  [['Revenus','#2E7D5E'],['Dépenses','#D4621A'],['Économies','#C8922A']].forEach(([lbl,col],i)=>{
+    const lx=W-200+i*68;ctx.fillStyle=col;ctx.fillRect(lx,3,8,8);ctx.fillStyle='#6B7280';ctx.font='8px DM Sans';ctx.textAlign='left';ctx.fillText(lbl,lx+11,10);
+  });
+}
+
+function renderRecentTx(entries, cur) {
+  const el = document.getElementById('recentTx'); if (!el) return;
+  if (!entries.length) { el.innerHTML='<div class="empty">Aucune transaction encore.</div>'; return; }
+  el.innerHTML = entries.map(e => `
+    <div class="tx-item">
+      <div class="tx-cat">${CATS[e.cat]||'📦'}</div>
+      <div class="tx-info"><div class="tx-date">${new Date(e.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</div><div class="tx-note">${e.note||e.cat}</div></div>
+      <div class="tx-amt">
+        ${e.inc?'<div class="tx-inc">+'+fmt(e.inc,cur)+'</div>':''}
+        ${e.exp?'<div class="tx-exp">-'+fmt(e.exp,cur)+'</div>':''}
+        ${e.sav?'<div class="tx-sav">+'+fmt(e.sav,cur)+'</div>':''}
       </div>
-      <div class="fg"><label>Économisé (€)</label><input type="number" id="eSaved" class="inp" placeholder="0.00" min="0" step="0.01"/></div>
-      <div class="fg full"><label>Note</label><input type="text" id="eNote" class="inp" placeholder="Ex : courses du soir…"/></div>
-    </div>
-    <button class="btn-g" id="btnAddEntry">Enregistrer</button>
-  </div>
-  <div class="tot-grid">
-    <div class="tot"><div class="tot-l">Aujourd'hui</div><div class="tot-v" id="tDay">0,00 €</div></div>
-    <div class="tot"><div class="tot-l">Cette semaine</div><div class="tot-v" id="tWeek">0,00 €</div></div>
-    <div class="tot"><div class="tot-l">Ce mois</div><div class="tot-v" id="tMonth">0,00 €</div></div>
-    <div class="tot tot-s"><div class="tot-l">Économies cumulées</div><div class="tot-v" id="tSaved">0,00 €</div></div>
-  </div>
-  <div class="card">
-    <div class="card-title">Historique</div>
-    <div id="entriesList"><div class="empty">Aucune fiche encore.</div></div>
-  </div>
-</section>
+    </div>`).join('');
+}
 
-<!-- OBJECTIF PERSONNEL -->
-<section class="page" id="p-goals">
-  <div class="ph"><div><h1 class="pt">Objectif Personnel</h1><p class="ps">Définissez vos rêves et suivez votre progression</p></div></div>
-  <div class="card">
-    <div class="card-title">Créer mon objectif</div>
-    <div class="form2">
-      <div class="fg"><label>Objectif</label>
-        <select id="gName" class="inp">
-          <option>Acheter une voiture</option><option>Voyager</option>
-          <option>Acheter une maison</option><option>Fonds d'urgence</option>
-          <option>Financer les études</option><option>Acheter un smartphone</option>
-          <option>Mon mariage</option><option>Console de jeux</option>
-          <option>Acheter un vélo</option><option>Budget beauté</option><option>Autre</option>
-        </select>
+function renderActiveDefis() {
+  const card = document.getElementById('activeDefiCard');
+  const lst  = document.getElementById('activeDefiList');
+  if (!card||!lst) return;
+  const joined  = ls('joinedDefis', {});
+  const savings = ls('defiSavings', {});
+  const p = ls('profile',{}), cur = p.currency||'€';
+  const keys = Object.keys(joined);
+  if (!keys.length) { card.style.display='none'; return; }
+  card.style.display='block';
+  lst.innerHTML = keys.map(i => {
+    const d = DEFIS[parseInt(i)]; if (!d) return '';
+    const sav = savings[i]||0;
+    const pct = Math.min(100,Math.round((sav/d.obj)*100));
+    return `<div class="ad-item">
+      <div class="ad-name">${d.name}</div>
+      <div class="ad-bar"><div class="ad-fill" style="width:${pct}%"></div></div>
+      <div class="ad-meta">${fmt(sav,cur)} économisé sur ${fmt(d.obj,cur)} — ${pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+function renderGoalEvo(cur) {
+  const card = document.getElementById('goalEvoCard');
+  const lst  = document.getElementById('goalEvoList');
+  if (!card||!lst) return;
+  const goals = ls('goals', []);
+  cur = cur || ls('profile',{}).currency||'€';
+  if (!goals.length) { card.style.display='none'; return; }
+  card.style.display='block';
+  lst.innerHTML = goals.map(g => {
+    const pct = Math.min(100,Math.round(((g.sav||0)/g.target)*100))||0;
+    return `<div class="ad-item">
+      <div class="ad-name">${g.name} ${pct>=100?'🏆':''}</div>
+      <div class="ad-bar"><div class="ad-fill" style="width:${pct}%;background:linear-gradient(90deg,#1E5A9C,#2E7D5E)"></div></div>
+      <div class="ad-meta">${fmt(g.sav||0,cur)} / ${fmt(g.target,cur)} — ${pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+/* ══ DAILY ══ */
+function addEntry() {
+  const date = document.getElementById('eDate')?.value;
+  const inc  = parseFloat(document.getElementById('eInc')?.value)||0;
+  const exp  = parseFloat(document.getElementById('eExp')?.value)||0;
+  const cat  = document.getElementById('eCat')?.value;
+  const sav  = parseFloat(document.getElementById('eSav')?.value)||0;
+  const note = document.getElementById('eNote')?.value.trim();
+  if (!date) { toast('Sélectionnez une date.'); return; }
+  if (!inc && !exp) { toast('Saisissez un revenu ou une dépense.'); return; }
+  const entries = ls('entries', []);
+  entries.push({id:Date.now(),date,inc,exp,cat,sav,note});
+  sv('entries', entries);
+  ['eInc','eExp','eSav','eNote'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  renderEntries(); renderDash();
+  toast('Fiche enregistrée !');
+}
+
+function renderEntries() {
+  const entries = ls('entries', []);
+  const p = ls('profile',{}), cur = p.currency||'€';
+  const now = new Date(), today = now.toISOString().slice(0,10);
+  const wS = new Date(now); wS.setDate(now.getDate()-now.getDay());
+  let dE=0,wE=0,mE=0,tS=0;
+  entries.forEach(e => {
+    if (e.date===today) dE+=e.exp||0;
+    if (new Date(e.date)>=wS) wE+=e.exp||0;
+    const d=new Date(e.date); if(d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()) mE+=e.exp||0;
+    tS+=e.sav||0;
+  });
+  txt('tDay',fmt(dE,cur)); txt('tWeek',fmt(wE,cur)); txt('tMonth',fmt(mE,cur)); txt('tSaved',fmt(tS,cur));
+  const lst = document.getElementById('entriesList'); if (!lst) return;
+  if (!entries.length) { lst.innerHTML='<div class="empty">Aucune fiche encore.</div>'; return; }
+  lst.innerHTML = [...entries].reverse().map(e => `
+    <div class="tx-item">
+      <div class="tx-cat">${CATS[e.cat]||'📦'}</div>
+      <div class="tx-info"><div class="tx-date">${new Date(e.date).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})}</div><div class="tx-note">${e.note||e.cat}</div></div>
+      <div class="tx-amt">
+        ${e.inc?'<div class="tx-inc">+'+fmt(e.inc,cur)+'</div>':''}
+        ${e.exp?'<div class="tx-exp">-'+fmt(e.exp,cur)+'</div>':''}
+        ${e.sav?'<div class="tx-sav">+'+fmt(e.sav,cur)+'</div>':''}
       </div>
-      <div class="fg"><label>Nom personnalisé</label><input type="text" id="gCustom" class="inp" placeholder="Mon projet…"/></div>
-      <div class="fg"><label>Montant cible (€)</label><input type="number" id="gTarget" class="inp" placeholder="5000"/></div>
-      <div class="fg"><label>Déjà économisé (€)</label><input type="number" id="gSaved" class="inp" placeholder="0"/></div>
-      <div class="fg"><label>Date cible</label><input type="date" id="gDate" class="inp"/></div>
-    </div>
-    <button class="btn-g" id="btnAddGoal">Créer l'objectif</button>
-  </div>
-  <div id="goalsList"><div class="empty">Aucun objectif. Commencez à rêver grand !</div></div>
-  <div class="upsell-goals">
-    <div class="ug" id="ugBusiness"><strong>Projet Business</strong><p>Objectifs professionnels illimités</p><span>Débloquer</span></div>
-    <div class="ug" id="ugCouple"><strong>Projet Couple</strong><p>Budget partagé à deux</p><span>Débloquer</span></div>
-  </div>
-</section>
+      <button class="tx-del" data-id="${e.id}">✕</button>
+    </div>`).join('');
+  lst.querySelectorAll('.tx-del').forEach(btn => btn.addEventListener('click', () => delEntry(+btn.dataset.id)));
+}
+function delEntry(id) { if(!confirm('Supprimer ?'))return; sv('entries',ls('entries',[]).filter(e=>e.id!==id)); renderEntries(); renderDash(); }
 
-<!-- PROJET BUSINESS -->
-<section class="page" id="p-business">
-  <div class="ph"><div><h1 class="pt">Projet Business</h1><p class="ps">Choisissez votre plan et lancez votre activité</p></div></div>
-  <div class="proj-card">
-    <h3>Ce que vous débloquez</h3>
-    <div class="proj-feats">
-      <span>Objectifs business illimités</span><span>Suivi revenus et dépenses pro</span>
-      <span>Trésorerie de sécurité</span><span>Rapports avancés</span>
-      <span>Budget matériel</span><span>Prévisions financières</span>
-    </div>
-  </div>
-  <p class="plan-label">Sélectionnez votre plan pour accéder immédiatement</p>
-  <div class="pricing-grid" id="pgBusiness"></div>
-  <div class="pay-choice" id="pcBusiness" style="display:none">
-    <div class="pc-title">Choisissez votre mode de paiement</div>
-    <div class="pc-btns">
-      <button class="btn-pay-card" id="pcBCard">Payer par carte bancaire</button>
-      <button class="btn-pay-pp" id="pcBPP">Payer avec PayPal</button>
-    </div>
-  </div>
-</section>
+/* ══ GOALS ══ */
+function addGoal() {
+  const goals = ls('goals', []);
+  if (goals.length >= 1) { showModal('🔒','Objectifs illimités','Le Plan Gratuit inclut 1 objectif. Passez au Plan Basic pour des objectifs illimités !'); return; }
+  const name   = document.getElementById('gCustom')?.value.trim() || document.getElementById('gName')?.value;
+  const target = parseFloat(document.getElementById('gTarget')?.value)||0;
+  const sav    = parseFloat(document.getElementById('gSaved')?.value)||0;
+  const date   = document.getElementById('gDate')?.value;
+  if (!target) { toast('Saisissez un montant cible.'); return; }
+  goals.push({id:Date.now(),name,target,sav,date});
+  sv('goals',goals);
+  ['gCustom','gTarget','gSaved','gDate'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderGoals(); renderDash();
+  toast('Objectif créé !');
+}
 
-<!-- PROJET COUPLE -->
-<section class="page" id="p-couple">
-  <div class="ph"><div><h1 class="pt">Projet Couple</h1><p class="ps">Construisez votre avenir ensemble</p></div></div>
-  <div class="proj-card">
-    <h3>Ce que vous débloquez</h3>
-    <div class="proj-feats">
-      <span>Objectifs couple illimités</span><span>Budget partagé à deux</span>
-      <span>Mariage · Maison · Voyage</span><span>Suivi des contributions</span>
-      <span>Projections financières</span><span>Arrivée bébé</span>
-    </div>
-  </div>
-  <p class="plan-label">Sélectionnez votre plan pour accéder immédiatement</p>
-  <div class="pricing-grid" id="pgCouple"></div>
-  <div class="pay-choice" id="pcCouple" style="display:none">
-    <div class="pc-title">Choisissez votre mode de paiement</div>
-    <div class="pc-btns">
-      <button class="btn-pay-card" id="pcCCard">Payer par carte bancaire</button>
-      <button class="btn-pay-pp" id="pcCPP">Payer avec PayPal</button>
-    </div>
-  </div>
-</section>
-
-<!-- CONSEILS -->
-<section class="page" id="p-tips">
-  <div class="ph"><div><h1 class="pt">Conseils Financiers</h1><p class="ps">Sagesse quotidienne pour maîtriser votre argent</p></div></div>
-  <div class="tip-hero">
-    <div class="th-label">Conseil du Jour</div>
-    <div class="th-text" id="tipText">Chargement…</div>
-    <button class="btn-w" id="btnNewTip">Nouveau conseil</button>
-  </div>
-  <div class="tips-grid" id="tipsGrid"></div>
-</section>
-
-<!-- DÉFIS -->
-<section class="page" id="p-defis">
-  <div class="ph"><div><h1 class="pt">Défis d'Épargne</h1><p class="ps">Relevez des défis et boostez vos économies</p></div></div>
-  <div class="defis-grid" id="defiGrid"></div>
-</section>
-
-<!-- FAMILLE -->
-<section class="page" id="p-family">
-  <div class="ph"><div><h1 class="pt">Mode Famille</h1><p class="ps">Gérez le budget de tout votre foyer</p></div></div>
-  <div class="gate">
-    <div class="gate-ico">👨‍👩‍👧‍👦</div>
-    <h2>Fonctionnalité Premium</h2>
-    <p>Gérez les dépenses du foyer, courses, factures et budget couple en un endroit.</p>
-    <div class="gate-feats"><span>Budget du foyer</span><span>Dépenses enfants</span><span>Courses communes</span><span>Rapports famille</span></div>
-    <div class="pc-btns" style="margin-top:20px">
-      <button class="btn-pay-card" id="btnFamCard">Payer par carte bancaire — 9,99 €/mois</button>
-      <button class="btn-pay-pp" id="btnFamPP">Payer avec PayPal — 9,99 €/mois</button>
-    </div>
-    <p class="gate-note">7 jours d'essai gratuit · Sans engagement</p>
-  </div>
-</section>
-
-<!-- ABONNEMENTS -->
-<section class="page" id="p-pricing">
-  <div class="ph"><div><h1 class="pt">Abonnements</h1><p class="ps">Choisissez le plan qui vous correspond</p></div></div>
-  <div class="tog-row">
-    <button class="tog active" id="togEU">Europe</button>
-    <button class="tog" id="togAF">Afrique</button>
-  </div>
-  <div class="trial-bar">7 jours d'essai gratuit sur tous les plans payants · Sans engagement</div>
-  <div class="sel-bar" id="selBar" style="display:none">
-    <div class="sel-left">
-      <div class="sel-check">✓</div>
-      <span>Plan sélectionné : <strong id="selName">Premium</strong> — <strong id="selPrice">5,99 €/mois</strong></span>
-    </div>
-    <div class="pc-btns">
-      <button class="btn-pay-card" id="selCard">Payer par carte bancaire</button>
-      <button class="btn-pay-pp" id="selPP">Payer avec PayPal</button>
-    </div>
-  </div>
-  <div class="pricing-grid" id="pgMain"></div>
-  <div class="pay-section">
-    <div class="pay-sec-title">Modes de paiement</div>
-    <div class="pay-groups">
-      <div>
-        <div class="pay-group-label">Disponibles maintenant</div>
-        <div class="pay-row">
-          <div class="pay-card-item"><span class="pbadge visa">Visa</span><span>Visa</span></div>
-          <div class="pay-card-item"><span class="pbadge mc">Mastercard</span><span>Mastercard</span></div>
-          <div class="pay-card-item"><span class="pbadge pp">PayPal</span><span>PayPal</span></div>
-        </div>
+function renderGoals() {
+  const goals = ls('goals',[]), p = ls('profile',{}), cur = p.currency||'€';
+  const lst = document.getElementById('goalsList'); if (!lst) return;
+  if (!goals.length) { lst.innerHTML='<div class="empty">Aucun objectif. Commencez à rêver grand !</div>'; return; }
+  lst.className='goals-grid';
+  lst.innerHTML = goals.map(g => {
+    const pct = Math.min(100,Math.round(((g.sav||0)/g.target)*100))||0;
+    const dt = g.date?new Date(g.date).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'';
+    return `<div class="goal-card">
+      <div class="goal-hd">
+        <div><div class="goal-name">${g.name}</div>${dt?'<div class="goal-dt">Date : '+dt+'</div>':''}</div>
+        <button class="goal-del" data-id="${g.id}">✕</button>
       </div>
-      <div>
-        <div class="pay-group-label muted">Bientôt disponibles</div>
-        <div class="pay-row">
-          <div class="pay-card-item op"><span class="pbadge amex">Amex</span><span>Bientôt</span></div>
-          <div class="pay-card-item op"><span class="pbadge wave">Wave</span><span>Bientôt</span></div>
-          <div class="pay-card-item op"><span class="pbadge orange">Orange</span><span>Bientôt</span></div>
-          <div class="pay-card-item op"><span class="pbadge mtn">MTN</span><span>Bientôt</span></div>
-          <div class="pay-card-item op"><span class="pbadge mpesa">M-Pesa</span><span>Bientôt</span></div>
-        </div>
+      <div class="goal-amts">
+        <div><div style="font-size:0.68rem;color:#6B7280;font-weight:800;text-transform:uppercase;margin-bottom:2px">Économisé</div><div class="goal-sv">${fmt(g.sav||0,cur)}</div></div>
+        <div class="goal-tg"><div style="font-size:0.68rem;color:#6B7280;font-weight:800;text-transform:uppercase;margin-bottom:2px">Objectif</div><strong style="font-family:'Cormorant Garamond',serif;font-size:1.1rem">${fmt(g.target,cur)}</strong></div>
       </div>
-    </div>
-    <div class="pay-secure">Paiements 100% sécurisés · Données cryptées · Sans engagement</div>
-  </div>
-</section>
+      <div class="pb-bar"><div class="pb-fill" style="width:${pct}%"></div></div>
+      <div class="pb-pct">${pct}% — Restant : ${fmt(Math.max(0,g.target-(g.sav||0)),cur)}</div>
+      <button class="goal-add" data-id="${g.id}">+ Ajouter des économies</button>
+    </div>`;
+  }).join('');
+  lst.querySelectorAll('.goal-del').forEach(btn => btn.addEventListener('click', () => delGoal(+btn.dataset.id)));
+  lst.querySelectorAll('.goal-add').forEach(btn => btn.addEventListener('click', () => addToGoal(+btn.dataset.id)));
+}
+function delGoal(id) { if(!confirm('Supprimer ?'))return; sv('goals',ls('goals',[]).filter(g=>g.id!==id)); renderGoals(); renderDash(); }
+function addToGoal(id) {
+  const amt = parseFloat(prompt('Montant économisé (€) :'));
+  if (!amt||isNaN(amt)||amt<=0) return;
+  const goals = ls('goals',[]), g = goals.find(x=>x.id===id);
+  if (g) { g.sav = (g.sav||0)+amt; sv('goals',goals); renderGoals(); renderDash(); toast('Économies ajoutées !'); }
+}
 
-<!-- COACHING -->
-<section class="page" id="p-coaching">
-  <div class="ph"><div><h1 class="pt">Coaching Premium</h1><p class="ps">Payez votre séance puis réservez votre créneau</p></div></div>
+/* ══ TIPS ══ */
+function renderTips() {
+  txt('tipText', TIPS[Math.floor(Math.random()*TIPS.length)].txt);
+  const grid = document.getElementById('tipsGrid'); if (!grid) return;
+  grid.innerHTML = TIPS.map(t => `<div class="tip-card"><div class="tip-cat">${t.cat}</div><div class="tip-txt">${t.txt}</div></div>`).join('');
+}
 
-  <!-- RAPPEL PROCESSUS -->
-  <div class="process-bar">
-    <div class="pb-step">
-      <div class="pbs-n">1</div>
-      <div class="pbs-t">Choisir votre offre</div>
-    </div>
-    <div class="pb-arr">→</div>
-    <div class="pb-step">
-      <div class="pbs-n">2</div>
-      <div class="pbs-t">Payer en sécurité</div>
-    </div>
-    <div class="pb-arr">→</div>
-    <div class="pb-step pb-step-key">
-      <div class="pbs-n">3</div>
-      <div class="pbs-t">Choisir votre créneau sur Calendly</div>
-    </div>
-  </div>
-  <div class="steps-bar">
-    <div class="step active" id="st1"><span class="sn">1</span> Choisir</div>
-    <div class="sa">→</div>
-    <div class="step" id="st2"><span class="sn">2</span> Payer</div>
-    <div class="sa">→</div>
-    <div class="step" id="st3"><span class="sn">3</span> Réserver</div>
-  </div>
-  <div id="cs1">
-    <div class="co-grid">
-      <div class="co-card">
-        <div class="co-name">Séance Découverte</div>
-        <div class="co-price">49,99 €</div>
-        <div class="co-dur">45 minutes</div>
-        <ul class="co-list"><li>Analyse de votre situation</li><li>Conseils personnalisés</li><li>Plan d'action simple</li><li>Suivi email 7 jours</li></ul>
-        <button class="btn-g co-btn" data-offer="Séance Découverte" data-price="49,99 €">Choisir cette offre</button>
-      </div>
-      <div class="co-card co-feat">
-        <div class="co-badge">Populaire</div>
-        <div class="co-name">Coaching Complet</div>
-        <div class="co-price">79,99 €</div>
-        <div class="co-dur">90 minutes</div>
-        <ul class="co-list"><li>Analyse approfondie</li><li>Plan épargne sur mesure</li><li>Plan BudgetSmart idéal</li><li>Feuille de route 12 mois</li><li>Suivi 30 jours</li></ul>
-        <button class="btn-g co-btn" data-offer="Coaching Complet" data-price="79,99 €">Choisir cette offre</button>
-      </div>
-      <div class="co-card">
-        <div class="co-name">Coaching Famille</div>
-        <div class="co-price">99,99 €</div>
-        <div class="co-dur">2 heures</div>
-        <ul class="co-list"><li>Budget familial complet</li><li>Plan couple et enfants</li><li>Mode famille offert</li><li>Suivi 60 jours</li></ul>
-        <button class="btn-g co-btn" data-offer="Coaching Famille" data-price="99,99 €">Choisir cette offre</button>
-      </div>
-    </div>
-  </div>
-  <div id="cs2" style="display:none">
-    <div class="card" style="padding:26px">
-      <div class="card-title">Offre : <span id="coOffer" style="color:#2E7D5E"></span> — <span id="coPrice" style="color:#C8922A"></span></div>
-      <div class="form2">
-        <div class="fg"><label>Prénom et Nom</label><input type="text" id="coName" class="inp" placeholder="Votre nom complet"/></div>
-        <div class="fg"><label>Email</label><input type="email" id="coEmail" class="inp" placeholder="votre@email.com"/></div>
-        <div class="fg"><label>Téléphone / WhatsApp</label><input type="tel" id="coPhone" class="inp" placeholder="+33 6 00 00 00 00"/></div>
-        <div class="fg"><label>Votre situation</label><input type="text" id="coSit" class="inp" placeholder="Ex : 2500 €/mois, objectif maison…"/></div>
-      </div>
-      <div class="total-row">Total à payer : <strong id="coTotal">79,99 €</strong></div>
-      <div class="pc-btns" style="margin-bottom:10px">
-        <button class="btn-pay-card" id="coCard">Payer par carte bancaire</button>
-        <button class="btn-pay-pp" id="coPP">Payer avec PayPal</button>
-      </div>
-      <button class="btn-out" id="coBack">Retour</button>
-    </div>
-  </div>
-  <div id="cs3" style="display:none">
-    <div class="success-card">
-      <div class="sc-ico">✅</div>
-      <h2>Paiement confirmé !</h2>
-      <p id="scDesc">Votre séance est payée avec succès.</p>
+/* ══ DÉFIS ══ */
+function renderDefis() {
+  const grid = document.getElementById('defiGrid'); if (!grid) return;
+  const joined  = ls('joinedDefis', {});
+  const savings = ls('defiSavings', {});
+  const lastAdd = ls('defiLastAdd', {});
+  const today   = new Date().toISOString().slice(0,10);
 
-      <!-- ÉTAPE IMPORTANTE - RÉSERVATION -->
-      <div class="booking-reminder">
-        <div class="br-step">
-          <div class="br-num">✓</div>
-          <div class="br-txt"><strong>Étape 1 — Paiement</strong><span>Paiement reçu et confirmé</span></div>
-        </div>
-        <div class="br-arrow">↓</div>
-        <div class="br-step br-step-active">
-          <div class="br-num">2</div>
-          <div class="br-txt"><strong>Étape 2 — Choisir votre créneau</strong><span>Cliquez ci-dessous pour réserver votre date et heure de séance</span></div>
-        </div>
-      </div>
+  grid.innerHTML = DEFIS.map((d, i) => {
+    const isJ    = !!joined[i];
+    const saved  = savings[i]||0;
+    const pct    = Math.min(100, Math.round((saved/d.obj)*100));
+    const done   = pct >= 100;
+    const elapsed= isJ ? Math.floor((new Date()-new Date(joined[i]))/(1000*60*60*24)) : 0;
+    const missed = isJ && !done && lastAdd[i] !== today && elapsed > 0;
 
-      <div class="sc-cal">
-        <p class="sc-cal-title">Votre paiement est confirmé.<br/>Choisissez maintenant votre créneau de coaching :</p>
-        <a href="https://calendly.com/missnyungedigitalservices/echange-projet-digital-ecommerce" 
-           target="_blank" class="btn-cal">
-          📅 Choisir mon créneau de coaching
-        </a>
-        <p class="sc-note">Après avoir choisi votre créneau, vous recevrez une confirmation par email avec tous les détails de votre séance.</p>
-        <div class="sc-warning">
-          ⚠️ Important — Ne fermez pas cette page avant d'avoir réservé votre créneau !
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+    let inner = '';
+    if (isJ) {
+      if (done) {
+        inner = `<div class="defi-trophy">
+          <div class="trophy-ico">🏆</div>
+          <div class="trophy-t">Félicitations !</div>
+          <div class="trophy-m">${MSG_SUCCES[i%MSG_SUCCES.length]}</div>
+        </div>`;
+      } else {
+        inner = `
+          <div class="defi-days">Jour <strong>${elapsed}</strong> — En cours</div>
+          <div class="dp"><div class="dp-bar"><div class="dp-fill" style="width:${pct}%"></div></div><div class="dp-pct">${pct}%</div></div>
+          ${missed?'<div class="defi-rappel">'+MSG_RAPPEL[i%MSG_RAPPEL.length]+'</div>':''}
+          ${saved>0?'<div class="defi-enc">💪 '+MSG_ENC[i%MSG_ENC.length]+'</div>':''}
+          <div class="defi-tracker">
+            <div class="dt-amounts">
+              <div class="dt-box sv"><span>Économisé</span><strong>${fmt(saved)}</strong></div>
+              <div class="dt-box go"><span>Objectif</span><strong>${fmt(d.obj)}</strong></div>
+              <div class="dt-box re"><span>Restant</span><strong>${fmt(Math.max(0,d.obj-saved))}</strong></div>
+            </div>
+            <div class="dt-hint">Conseil : ajoutez ${fmt(d.q)} par jour</div>
+            <div class="dt-input">
+              <input type="number" class="inp dt-inp" data-i="${i}" placeholder="Montant ajouté (€)" min="0" step="0.01"/>
+              <button class="dt-add" data-i="${i}">Ajouter</button>
+            </div>
+          </div>`;
+      }
+    }
 
-<!-- PROFIL -->
-<section class="page" id="p-profile">
-  <div class="ph"><div><h1 class="pt">Mon Profil</h1><p class="ps">Personnalisez votre expérience BudgetSmart</p></div></div>
-  <div class="card" style="padding:26px">
-    <div class="photo-row">
-      <div class="photo-circle" id="photoCircle"><span id="photoLetter">U</span><img id="photoImg" src="" style="display:none"/></div>
-      <div>
-        <label for="photoInput" class="btn-out" style="cursor:pointer;display:inline-block">Changer la photo</label>
-        <input type="file" id="photoInput" accept="image/*" style="display:none"/>
-        <p style="font-size:0.78rem;color:#6B7280;margin-top:6px">JPG ou PNG — Max 2MB</p>
-      </div>
-    </div>
-    <div class="form2">
-      <div class="fg"><label>Prénom</label><input type="text" id="profName" class="inp" placeholder="Votre prénom"/></div>
-      <div class="fg"><label>Email</label><input type="email" id="profEmail" class="inp" placeholder="votre@email.com"/></div>
-      <div class="fg"><label>Devise</label>
-        <select id="profCur" class="inp">
-          <option value="€">Euro (€)</option><option value="$">Dollar ($)</option>
-          <option value="FCFA">FCFA</option><option value="MAD">Dirham (MAD)</option>
-        </select>
-      </div>
-      <div class="fg"><label>Objectif épargne/mois</label><input type="number" id="profGoal" class="inp" placeholder="500"/></div>
-      <div class="fg"><label>Revenu mensuel</label><input type="number" id="profInc" class="inp" placeholder="2000"/></div>
-      <div class="fg"><label>Plan actuel</label><input type="text" class="inp" value="Plan Gratuit" disabled/></div>
-    </div>
-    <button class="btn-g" id="btnSaveProfile">Enregistrer le profil</button>
-  </div>
-  <div class="card pwa-card">
-    <div class="card-title">Installer BudgetSmart sur votre téléphone</div>
-    <p style="font-size:0.9rem;color:#374151;margin-bottom:12px">Installez l'app gratuitement — fonctionne sans internet !</p>
-    <div class="pwa-steps">
-      <div class="pwa-step"><strong>Android :</strong> Chrome → Menu → "Ajouter à l'écran d'accueil"</div>
-      <div class="pwa-step"><strong>iPhone :</strong> Safari → bouton Partager → "Sur l'écran d'accueil"</div>
-    </div>
-    <button class="btn-g" id="btnInstall" style="width:100%;margin-top:12px">Installer l'application</button>
-  </div>
-  <div class="card" id="adminCard" style="display:none">
-    <div class="card-title">Accès Propriétaire</div>
-    <button class="btn-gold" id="btnAdmin" style="width:100%">Connexion Admin</button>
-  </div>
-  <div class="card">
-    <div class="card-title">Données et confidentialité</div>
-    <p style="font-size:0.9rem;color:#6B7280;margin-bottom:14px">Données stockées localement — aucune donnée partagée.</p>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn-out" id="btnExport">Exporter mes données</button>
-      <button class="btn-danger" id="btnClear">Effacer tout</button>
-    </div>
-  </div>
-</section>
+    return `<div class="defi-card ${isJ?'joined':''} ${done?'done':''}" data-i="${i}">
+      <div class="defi-name">${d.name}</div>
+      <div class="defi-desc">${d.desc}</div>
+      <div class="defi-dur">${d.dur} · Objectif : ${fmt(d.obj)} · Conseil : ${fmt(d.q)}/jour</div>
+      ${inner}
+      ${!done?'<button class="defi-btn '+(isJ?'quit':'')+'">'+(isJ?'Abandonner':'Commencer ce défi')+'</button>':''}
+    </div>`;
+  }).join('');
 
-<!-- ADMIN -->
-<section class="page" id="p-admin">
-  <div class="ph">
-    <div><h1 class="pt">Espace Admin</h1><p class="ps">Accès propriétaire — tous les plans débloqués</p></div>
-    <div class="admin-badge">Propriétaire</div>
-  </div>
-  <div class="admin-stats">
-    <div class="as as-g"><div class="as-ico">💰</div><div class="as-l">Économies totales</div><div class="as-v" id="adSaved">0,00 €</div></div>
-    <div class="as as-b"><div class="as-ico">📊</div><div class="as-l">Dépenses ce mois</div><div class="as-v" id="adExp">0,00 €</div></div>
-    <div class="as as-go"><div class="as-ico">🎯</div><div class="as-l">Objectifs actifs</div><div class="as-v" id="adGoals">0</div></div>
-    <div class="as as-o"><div class="as-ico">🔥</div><div class="as-l">Défis en cours</div><div class="as-v" id="adDefis">0</div></div>
-  </div>
-  <div class="card">
-    <div class="card-title">Accès rapide — Toutes les fonctionnalités</div>
-    <div class="admin-nav">
-      <button class="anb" data-p="dashboard">Tableau de bord</button>
-      <button class="anb" data-p="daily">Dépenses</button>
-      <button class="anb" data-p="goals">Objectif</button>
-      <button class="anb" data-p="business">Business</button>
-      <button class="anb" data-p="couple">Couple</button>
-      <button class="anb" data-p="tips">Conseils</button>
-      <button class="anb" data-p="defis">Défis</button>
-      <button class="anb" data-p="family">Famille</button>
-      <button class="anb" data-p="pricing">Plans</button>
-      <button class="anb" data-p="coaching">Coaching</button>
-    </div>
-  </div>
-  <div class="card"><div class="card-title">Mon Épargne</div><div id="adGoalsList"><div class="empty">Aucun objectif.</div></div></div>
-  <div class="card"><div class="card-title">Dépenses récentes</div><div id="adEntries"><div class="empty">Aucune entrée.</div></div></div>
-  <div class="card" style="text-align:center"><button class="btn-danger" id="btnLogout">Quitter le mode Admin</button></div>
-</section>
+  grid.querySelectorAll('.defi-btn').forEach(btn => btn.addEventListener('click', () => toggleDefi(+btn.closest('.defi-card').dataset.i)));
+  grid.querySelectorAll('.dt-add').forEach(btn => btn.addEventListener('click', () => addDefiAmt(+btn.dataset.i)));
+}
 
-</main>
+function toggleDefi(i) {
+  let joined = ls('joinedDefis', {});
+  if (joined[i]) { if(!confirm('Abandonner ce défi ?'))return; delete joined[i]; toast('Défi abandonné.'); }
+  else { joined[i] = new Date().toISOString(); toast('Défi commencé ! Ajoutez votre premier montant.'); }
+  sv('joinedDefis', joined);
+  renderDefis(); renderActiveDefis();
+}
 
-<!-- MODAL -->
-<div class="modal" id="modal">
-  <div class="modal-box">
-    <div class="modal-ico" id="modalIco">🔒</div>
-    <div class="modal-title" id="modalTitle">Fonctionnalité Premium</div>
-    <p class="modal-text" id="modalText">Passez à un plan payant pour accéder.</p>
-    <div class="pc-btns" style="margin-bottom:10px">
-      <button class="btn-pay-card" id="mCard">Payer par carte bancaire</button>
-      <button class="btn-pay-pp" id="mPP">Payer avec PayPal</button>
-    </div>
-    <button class="btn-close" id="mClose">Rester sur le plan gratuit</button>
-  </div>
-</div>
+function addDefiAmt(i) {
+  const input = document.querySelector('.dt-inp[data-i="'+i+'"]');
+  const amt = parseFloat(input?.value);
+  if (!amt||isNaN(amt)||amt<=0) { toast('Saisissez un montant valide.'); return; }
+  const savings = ls('defiSavings', {});
+  const lastAdd = ls('defiLastAdd', {});
+  const before  = savings[i]||0;
+  savings[i] = before + amt;
+  lastAdd[i] = new Date().toISOString().slice(0,10);
+  sv('defiSavings', savings);
+  sv('defiLastAdd', lastAdd);
+  if (input) input.value = '';
+  const d = DEFIS[i];
+  if (savings[i] >= d.obj && before < d.obj) {
+    setTimeout(() => showModal('🏆','Félicitations !','Vous avez atteint votre objectif "'+d.name+'" de '+fmt(d.obj)+' ! Vous êtes incroyable !'), 300);
+    toast('🏆 OBJECTIF ATTEINT ! Félicitations !');
+    if('Notification'in window && Notification.permission==='granted') {
+      new Notification('🏆 Objectif atteint !',{body:d.name+' — '+fmt(d.obj)+' économisés !',icon:'./icons/icon-192.png'});
+    }
+  } else {
+    toast('Bien joué ! '+fmt(amt)+' ajouté — '+Math.min(100,Math.round((savings[i]/d.obj)*100))+'% atteint !');
+  }
+  renderDefis(); renderActiveDefis();
+}
 
-<div id="toast"></div>
-<script src="script.js"></script>
-</body>
-</html>
+/* ══ PRICING ══ */
+function makePR(plans) {
+  return plans.map((p,i) => `
+    <div class="pr ${p.feat?'feat':''}" data-i="${i}">
+      ${p.badge?'<div class="pr-badge">'+p.badge+'</div>':''}
+      <div class="pr-name">${p.name}</div>
+      <div class="pr-price">${p.price}<span class="pr-unit"> ${p.unit}</span></div>
+      <ul class="pr-feats">${p.feats.map(f=>'<li>'+f+'</li>').join('')}</ul>
+      <button class="pr-btn">${p.cta}</button>
+    </div>`).join('');
+}
+
+function renderPricingMain() {
+  const el = document.getElementById('pgMain'); if (!el) return;
+  const plans = PLANS[pMode];
+  el.style.gridTemplateColumns = 'repeat(4,1fr)';
+  el.innerHTML = makePR(plans);
+  el.querySelectorAll('.pr').forEach((card, i) => {
+    card.addEventListener('click', () => {
+      const plan = plans[i];
+      if (plan.price==='0') { toast('Vous êtes sur le plan gratuit !'); return; }
+      el.querySelectorAll('.pr').forEach(c => c.classList.remove('sel'));
+      card.classList.add('sel');
+      const bar = document.getElementById('selBar');
+      if (bar) {
+        bar.style.display='flex';
+        txt('selName', plan.name);
+        txt('selPrice', plan.price+' '+plan.unit);
+        const sc = document.getElementById('selCard');
+        if (sc) { sc.onclick = () => window.open(getStripeLink(plan.name),'_blank'); }
+        bar.scrollIntoView({behavior:'smooth',block:'center'});
+      }
+      toast('Plan '+plan.name+' sélectionné !');
+    });
+  });
+}
+
+function renderPricingProject(elId, payBoxId) {
+  const el = document.getElementById(elId); if (!el) return;
+  const plans = PLANS['eu'].slice(1);
+  el.style.gridTemplateColumns = 'repeat(3,1fr)';
+  el.innerHTML = makePR(plans);
+  el.querySelectorAll('.pr').forEach((card, i) => {
+    card.addEventListener('click', () => {
+      el.querySelectorAll('.pr').forEach(c => c.classList.remove('sel'));
+      card.classList.add('sel');
+      const box = document.getElementById(payBoxId);
+      if (box) {
+        box.style.display='block';
+        const cb = box.querySelector('.btn-card');
+        if (cb) cb.onclick = () => window.open(getStripeLink(plans[i].name),'_blank');
+        box.scrollIntoView({behavior:'smooth',block:'center'});
+      }
+      toast('Plan '+plans[i].name+' sélectionné !');
+    });
+  });
+}
+
+function renderPricingAll() {
+  renderPricingMain();
+  renderPricingProject('pgBusiness','pcBusiness');
+  renderPricingProject('pgCouple','pcCouple');
+}
+
+/* ══ COACHING ══ */
+function initCoaching() {
+  document.querySelectorAll('.co-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      coOffer = {offer: btn.dataset.offer, price: btn.dataset.price};
+      coStep(2);
+    });
+  });
+  const b = (id,fn) => { const el=document.getElementById(id); if(el) el.addEventListener('click',fn); };
+  b('coBack', () => coStep(1));
+  b('coCard', () => payCoaching('card'));
+  b('coPP',   () => payCoaching('paypal'));
+}
+
+function coStep(n) {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById('cs'+i); if(el) el.style.display=i===n?'block':'none';
+    const s  = document.getElementById('st'+i); if(s){s.classList.remove('active','done');if(i===n)s.classList.add('active');if(i<n)s.classList.add('done');}
+  });
+  if (n===2&&coOffer) { txt('coOffer',coOffer.offer); txt('coPrice',coOffer.price); txt('coTotal',coOffer.price); }
+  if (n===3&&coOffer) { txt('scDesc','Votre séance '+coOffer.offer+' ('+coOffer.price+') est confirmée. Réservez votre créneau :'); }
+}
+
+function payCoaching(method) {
+  const name  = document.getElementById('coName')?.value.trim();
+  const email = document.getElementById('coEmail')?.value.trim();
+  if (!name||!email) { toast('Remplissez votre nom et email.'); return; }
+  if (!coOffer) { toast('Sélectionnez une offre.'); return; }
+  sv('coachingBooking',{name,email,phone:document.getElementById('coPhone')?.value,sit:document.getElementById('coSit')?.value,offer:coOffer,method,date:new Date().toISOString()});
+  toast(method==='card'?'Redirection vers le paiement…':'Redirection vers PayPal…');
+  setTimeout(()=>{window.open(method==='card'?STRIPE:PAYPAL,'_blank');setTimeout(()=>coStep(3),2000);},800);
+}
+
+/* ══ PROFILE ══ */
+function loadProfile() {
+  const p = ls('profile', {});
+  const set = (id,v) => { const el=document.getElementById(id); if(el&&v!==undefined) el.value=v; };
+  set('profName',p.name); set('profEmail',p.email); set('profCur',p.currency);
+  set('profGoal',p.savingsGoal); set('profInc',p.income);
+  const letter = p.name?p.name.charAt(0).toUpperCase():'U';
+  txt('spAv',letter); txt('mhAv',letter); txt('photoLetter',letter);
+  if (p.name) txt('spName',p.name);
+}
+
+function saveProfile() {
+  const p = {
+    name:        document.getElementById('profName')?.value||'',
+    email:       document.getElementById('profEmail')?.value||'',
+    currency:    document.getElementById('profCur')?.value||'€',
+    savingsGoal: parseFloat(document.getElementById('profGoal')?.value)||0,
+    income:      parseFloat(document.getElementById('profInc')?.value)||0,
+  };
+  sv('profile',p); loadProfile(); renderDash(); renderEntries(); renderGoals();
+  toast('Profil enregistré !');
+}
+
+/* ══ PHOTO ══ */
+function loadPhoto() {
+  const data = localStorage.getItem('bs_photo');
+  if (data) applyPhoto(data);
+}
+function handlePhoto(e) {
+  const file = e.target.files[0]; if (!file) return;
+  if (file.size>2*1024*1024) { toast('Photo trop grande (max 2MB)'); return; }
+  const reader = new FileReader();
+  reader.onload = ev => { localStorage.setItem('bs_photo',ev.target.result); applyPhoto(ev.target.result); toast('Photo mise à jour !'); };
+  reader.readAsDataURL(file);
+}
+function applyPhoto(data) {
+  const img = document.getElementById('photoImg'), let_ = document.getElementById('photoLetter');
+  if (img){img.src=data;img.style.display='block';}  if(let_)let_.style.display='none';
+  const av = document.getElementById('spAv');
+  if(av)av.innerHTML='<img src="'+data+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>';
+  const mh = document.getElementById('mhAv');
+  if(mh)mh.innerHTML='<img src="'+data+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>';
+}
+
+/* ══ DATA ══ */
+function exportData() {
+  const data = {entries:ls('entries',[]),goals:ls('goals',[]),joinedDefis:ls('joinedDefis',{}),defiSavings:ls('defiSavings',{}),profile:ls('profile',{}),date:new Date().toISOString()};
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href=url; a.download='budgetsmart-'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+  URL.revokeObjectURL(url); toast('Données exportées !');
+}
+function clearData() {
+  if(!confirm('Effacer toutes les données ? Action irréversible.'))return;
+  ['entries','goals','joinedDefis','defiSavings','defiLastAdd','profile','bs_photo','bs_admin','bs_installed'].forEach(k=>localStorage.removeItem(k));
+  location.reload();
+}
+
+/* ══ MODAL ══ */
+function showModal(ico,title,text) {
+  txt('mIco',ico); txt('mTitle',title); txt('mText',text);
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+/* ══ ADMIN ══ */
+function initAdmin() {
+  if (window.location.hash==='#admin') setTimeout(adminLogin,500);
+  const logo = document.querySelector('.sidebar-logo');
+  if (logo) { let c=0; logo.addEventListener('click',()=>{c++;if(c>=3){c=0;adminLogin();}setTimeout(()=>{c=0;},1500);}); }
+  if (ls('bs_admin')===ADMIN_PWD) activateAdmin();
+}
+function adminLogin() {
+  const pwd = prompt('Mot de passe administrateur :');
+  if (pwd===ADMIN_PWD) { sv('bs_admin',ADMIN_PWD); activateAdmin(); toast('Mode Admin activé !'); go('admin'); }
+  else if (pwd!==null) toast('Mot de passe incorrect.');
+}
+function activateAdmin() {
+  const li = document.getElementById('adminLi'); if(li) li.style.display='block';
+  const ac = document.getElementById('adminCard'); if(ac) ac.style.display='block';
+  txt('sbPlan','Admin — Accès Complet'); txt('spPlan','Propriétaire');
+}
+function renderAdmin() {
+  const entries=ls('entries',[]),goals=ls('goals',[]),joined=ls('joinedDefis',{}),p=ls('profile',{}),cur=p.currency||'€';
+  const now=new Date(),m=now.getMonth(),y=now.getFullYear();
+  let mE=0,tS=0;
+  entries.forEach(e=>{const d=new Date(e.date);if(d.getMonth()===m&&d.getFullYear()===y)mE+=e.exp||0;tS+=e.sav||0;});
+  txt('adSav',fmt(tS,cur)); txt('adExp',fmt(mE,cur));
+  txt('adGoals',goals.length.toString()); txt('adDefis',Object.keys(joined).length.toString());
+  const gl=document.getElementById('adGoalsList');
+  if(gl) gl.innerHTML=goals.length?goals.map(g=>{const pct=Math.min(100,Math.round(((g.sav||0)/g.target)*100))||0;return`<div class="ad-item"><div class="ad-name">${g.name}</div><div class="ad-bar"><div class="ad-fill" style="width:${pct}%"></div></div><div class="ad-meta">${fmt(g.sav||0,cur)} / ${fmt(g.target,cur)} — ${pct}%</div></div>`;}).join(''):'<div class="empty">Aucun objectif.</div>';
+  const el=document.getElementById('adEntries');
+  if(el) el.innerHTML=[...entries].reverse().slice(0,5).map(e=>`<div class="tx-item"><div class="tx-cat">${CATS[e.cat]||'📦'}</div><div class="tx-info"><div class="tx-date">${new Date(e.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</div><div class="tx-note">${e.note||e.cat}</div></div><div class="tx-amt">${e.inc?'<div class="tx-inc">+'+fmt(e.inc,cur)+'</div>':''}${e.exp?'<div class="tx-exp">-'+fmt(e.exp,cur)+'</div>':''}</div></div>`).join('')||'<div class="empty">Aucune entrée.</div>';
+}
+function adminLogout(){if(!confirm('Quitter le mode Admin ?'))return;localStorage.removeItem('bs_admin');location.reload();}
+
+/* ══ PWA ══ */
+function initPWA() {
+  if('serviceWorker'in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();window._pwa=e;});
+  window.addEventListener('appinstalled',()=>{
+    const bn=document.getElementById('pwaBanner');
+    if(bn)bn.style.display='none';
+    localStorage.setItem('bs_installed','1');
+    toast('BudgetSmart installé avec succès !');
+  });
+  initPWABanner();
+}
+
+function initPWABanner() {
+  const bn = document.getElementById('pwaBanner');
+  if (!bn) return;
+  // Cacher si déjà installé
+  if (window.matchMedia('(display-mode:standalone)').matches || localStorage.getItem('bs_installed')==='1') {
+    bn.style.display='none'; return;
+  }
+  bn.style.display='flex';
+}
+
+function pwaInstall() {
+  if(window._pwa){window._pwa.prompt();window._pwa.userChoice.then(r=>{if(r.outcome==='accepted'){toast('Installation en cours…');}window._pwa=null;});}
+  else{const iOS=/iPad|iPhone|iPod/.test(navigator.userAgent);alert(iOS?'Sur iPhone :\n1. Appuyez sur bouton Partager\n2. "Sur l\'écran d\'accueil"\n3. "Ajouter"':'Sur Android :\n1. Menu Chrome (3 points)\n2. "Ajouter à l\'écran d\'accueil"\n3. "Ajouter"');}
+}
+
+/* ══ NOTIFICATIONS ══ */
+function initNotif() {
+  if(!('Notification'in window))return;
+  if(Notification.permission==='default'){
+    Notification.requestPermission().then(p=>{if(p==='granted'){scheduleNotif();toast('Notifications activées !');}});
+  } else if(Notification.permission==='granted'){
+    scheduleNotif();
+  }
+}
+function scheduleNotif() {
+  const today=new Date().toISOString().slice(0,10);
+  if(localStorage.getItem('bs_notif')===today)return;
+  const joined=ls('joinedDefis',{});
+  const goals=ls('goals',[]);
+  const savings=ls('defiSavings',{});
+  const entries=ls('entries',[]);
+  const todayEntries=entries.filter(e=>e.date===today);
+
+  if(Object.keys(joined).length>0){
+    setTimeout(()=>{
+      const msgs=Object.keys(joined).map(i=>{const d=DEFIS[parseInt(i)];if(!d)return null;const s=savings[i]||0;const pct=Math.min(100,Math.round((s/d.obj)*100));return d.name+' — '+pct+'%';}).filter(Boolean);
+      new Notification('BudgetSmart — Vos défis vous attendent !',{body:msgs.join('\n'),icon:'./icons/icon-192.png',tag:'defis'});
+    },3000);
+  }
+  if(goals.length>0){
+    setTimeout(()=>{
+      const cur=ls('profile',{}).currency||'€';
+      const msgs=goals.map(g=>{const pct=Math.min(100,Math.round(((g.sav||0)/g.target)*100))||0;return g.name+' — '+pct+'%';});
+      new Notification('BudgetSmart — Vos objectifs d\'épargne',{body:msgs.join('\n'),icon:'./icons/icon-192.png',tag:'goals'});
+    },6000);
+  }
+  setTimeout(()=>{
+    new Notification('BudgetSmart — '+(todayEntries.length?'Bilan du jour':'Rappel quotidien'),{
+      body:todayEntries.length?'Vous avez enregistré '+todayEntries.length+' entrée(s) aujourd\'hui. Continuez !':'N\'oubliez pas d\'enregistrer vos dépenses et économies d\'aujourd\'hui !',
+      icon:'./icons/icon-192.png',tag:'daily'
+    });
+  },9000);
+  localStorage.setItem('bs_notif',today);
+}
